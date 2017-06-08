@@ -149,8 +149,8 @@ function handleRoadSelectRequest(response) {
   var sessionID = getEntry(response.parameters, "sessionID");
   console.log("Session ID: " + sessionID);
   busses = [];
-  //response.dm.itdOdvAssignedStops.forEach(function(element){
-  var element = response.dm.itdOdvAssignedStops[0];
+  response.dm.itdOdvAssignedStops.forEach(function(element){
+  //var element = response.dm.itdOdvAssignedStops[0];
     console.log("Stop: " + element + ", Stop ID: " + element.stopID);
     requestBusData(0, "getBusses", [
       ["typeInfo_dm","stopID"],
@@ -159,7 +159,7 @@ function handleRoadSelectRequest(response) {
       ["mode", "direct"]
     ]);
     busRequestsPending++;
-  //});
+  });
 }
 
 function handleGetBussesRequest(response) {
@@ -195,7 +195,7 @@ function busListToEntries(busList)
         icon: 'images/menu_icon.png',
         subtitle: 'Get bus-data'
       }];
-  for (var i = 0; i < Math.max(10, busList.length); i++)
+  for (var i = 0; i < Math.min(10, busList.length); i++)
     {
       itemList.push({
         title: busList[i][2] + " " + busList[i][3],
@@ -227,6 +227,15 @@ function httpRequest(requestStr, requestOperation)
     }
   xhttp.open("GET", requestStr, true);
   xhttp.send();
+}
+
+function newErrorEntry(errorMsg, errorMsg2) {
+  updateMenuItems([
+    {
+      title: 'Error',
+      subtitle: "Couldn't get location!"
+    }
+  ]);
 }
 
 function newBusMenu(busList) {
