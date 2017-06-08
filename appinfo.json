@@ -1,7 +1,7 @@
 {
     "appKeys": {},
     "capabilities": [
-        ""
+        "location"
     ],
     "companyName": "timo855@gmail.com",
     "longName": "DING.eu Connections",

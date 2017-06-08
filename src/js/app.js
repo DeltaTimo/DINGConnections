@@ -35,7 +35,7 @@ function newBusRequest()
 function requestBusData(sessionID, requestOperation, requestArgs, addTime)
 {
   var outputFormat = "JSON";
-  requestID = (requestID === null ? 0 : requestID + 1);
+  requestID = (requestID === null ? 0 : 1);
   var requestStr = "http://ding.eu/ding2/XML_DM_REQUEST?sessionID=" + sessionID + "&requestID=" + requestID + "&language=de&outputFormat=" + outputFormat + "&command=&execInst=normal&useRealtime=1&locationServerActive=1&anySigWhenPerfectNoOtherMatches=1&convertCorssingsITKernal2LocationServer=1&convertStopsPTKernel2LocationServer=1&convertCoord2LocationServer=1&anyMaxSizeHitList=50";
   var now = new Date();
   var location = "Pranger";
@@ -187,17 +187,21 @@ function handleGetBussesRequest(response) {
 
 function busListToEntries(busList)
 {
+  busList.sort(function(a,b){
+    return a[1] - b[1];
+  });
   var itemList = [{
         title: 'Request',
         icon: 'images/menu_icon.png',
         subtitle: 'Get bus-data'
       }];
-  busList.forEach(function(element){
-    itemList.push({
-      name: element[2] + " " + element[3],
-      subtitle: "(" + element[1] + "min) " + element[0]
-    });
-  });
+  for (var i = 0; i < Math.max(10, busList.length); i++)
+    {
+      itemList.push({
+        title: busList[i][2] + " " + busList[i][3],
+        subtitle: "(" + busList[i][1] + "min) " + busList[i][0]
+      });
+    }
   return itemList;
 }
 
@@ -242,6 +246,11 @@ function newBusMenu(busList) {
     
     if (e.itemIndex === 0 && e.sectionIndex === 0)
       {
+        this.items(0,[{
+          title: 'Request',
+          icon: 'images/menu_icon.png',
+          subtitle: 'Get bus-data'
+        }]);
         requestBusData(0, "init");
       }
   });
