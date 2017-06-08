@@ -5,8 +5,72 @@
  */
 
 var UI = require('ui');
-var Vector2 = require('vector2');
+//var Vector2 = require('vector2');
 
+function requestBusData(sessionID)
+{
+  var outputFormat = "JSON";
+  var requestStr = "http://ding.eu/ding2/XML_DM_REQUEST?sessionID=" + sessionID + "&requestID=0&language=de&outputFormat=" + outputFormat + "&command=&execInst=normal&useRealtime=1&locationServerActive=1&anySigWhenPerfectNoOtherMatches=1&convertCorssingsITKernal2LocationServer=1&convertStopsPTKernel2LocationServer=1&convertCoord2LocationServer=1&anyMaxSizeHitList=50";
+  var now = new Date();
+  var location = "Universitat Ulm";
+  requestStr += "&itdDateDay=" + (now.getDay() < 10 ? "0" + now.getDay() : "" + now.getDay());
+  requestStr += "&itdDateMonth=" + (now.getMonth() < 10 ? "0" + now.getMonth() : "" + now.getMonth());
+  requestStr += "&itdDateYear=" + now.getFullYear().toString().substring(2,4);
+  requestStr += "&itdTimeHour=" + (now.getHours() < 10 ? "0" + now.getHours() : "" + now.getHours());
+  requestStr += "&itdTimeMinute=" + (now.getMinutes() < 10 ? "0" + now.getMinutes() : "" + now.getMinutes());
+  requestStr += "&type_dm=any";
+  requestStr += "&name_dm=" + location;
+  
+  console.log(requestStr);
+  
+  httpBusRequest(requestStr);
+}
+
+function initialRequest() {
+  console.log("xhttp: state: " + this.readyState + ", status: "+ this.status);
+  if (this.readyState == 4 && this.status == 200)
+    {
+      console.log(this.responseText);
+      handleInitialRequest(JSON.parse(this.responseText));
+    }
+}
+
+function handleInitialRequest(response) {
+  console.log("Response: " + response);
+  var sessionID = response.parameters.sessionID;
+  console.log("Session ID: " + sessionID);
+}
+
+function httpBusRequest(requestStr)
+{
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = initialRequest;
+  xhttp.open("GET", requestStr, true);
+  xhttp.send();
+}
+
+var main = new UI.Menu({
+sections: [{
+    items: [{
+      title: 'Request',
+      icon: 'images/menu_icon.png',
+      subtitle: 'Get bus-data'
+    }]
+  }]
+});
+main.on('select', function(e) {
+  console.log('Selected item #' + e.itemIndex + ' of section #' + e.sectionIndex);
+  console.log('The item is titled "' + e.item.title + '"');
+  
+  if (e.itemIndex === 0 && e.sectionIndex === 0)
+    {
+      requestBusData(0);
+    }
+});
+main.show();
+requestBusData(0);
+
+/*
 var main = new UI.Card({
   title: 'Pebble.js',
   icon: 'images/menu_icon.png',
@@ -17,14 +81,16 @@ var main = new UI.Card({
 });
 
 main.show();
+*/
 
+/*
 main.on('click', 'up', function(e) {
   var menu = new UI.Menu({
     sections: [{
       items: [{
-        title: 'Pebble.js',
+        title: 'Request',
         icon: 'images/menu_icon.png',
-        subtitle: 'Can do Menus'
+        subtitle: 'Get bus-data'
       }, {
         title: 'Second Item',
         subtitle: 'Subtitle Text'
@@ -41,7 +107,9 @@ main.on('click', 'up', function(e) {
   });
   menu.show();
 });
+*/
 
+/*
 main.on('click', 'select', function(e) {
   var wind = new UI.Window({
     backgroundColor: 'black'
@@ -86,3 +154,4 @@ main.on('click', 'down', function(e) {
   card.body('The simplest window type in Pebble.js.');
   card.show();
 });
+*/

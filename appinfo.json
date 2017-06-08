@@ -4,7 +4,7 @@
         ""
     ],
     "companyName": "timo855@gmail.com",
-    "longName": "DING Connections (JS)",
+    "longName": "DING.eu Connections",
     "projectType": "pebblejs",
     "resources": {
         "media": [
@@ -47,7 +47,7 @@
         ]
     },
     "sdkVersion": "3",
-    "shortName": "DING Connections (JS)",
+    "shortName": "DING.eu Busses",
     "targetPlatforms": [
         "aplite",
         "basalt"
