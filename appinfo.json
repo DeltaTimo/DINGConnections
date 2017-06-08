@@ -28,6 +28,21 @@
                 "file": "fonts/UbuntuMono-Regular.ttf",
                 "name": "MONO_FONT_14",
                 "type": "font"
+            },
+            {
+                "file": "images/tile_splash.png",
+                "name": "IMAGES_TILE_SPLASH_PNG",
+                "type": "bitmap"
+            },
+            {
+                "file": "images/menu_icon.png",
+                "name": "IMAGES_MENU_ICON_PNG",
+                "type": "bitmap"
+            },
+            {
+                "file": "images/logo_splash.png",
+                "name": "IMAGES_LOGO_SPLASH_PNG",
+                "type": "bitmap"
             }
         ]
     },
