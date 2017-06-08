@@ -5,6 +5,9 @@
  */
 
 var requestID = 0;
+var busses = [];
+var busRequestsPending = 0;
+var menu;
 var UI = require('ui');
 //var Vector2 = require('vector2');
 
@@ -26,28 +29,30 @@ function responseToString(errorCode)
 function newBusRequest()
 {
   requestID = null;
-  requestBusData(0);
+  requestBusData(0, "init");
 }
 
-function requestBusData(sessionID, requestOperation, requestArgs)
+function requestBusData(sessionID, requestOperation, requestArgs, addTime)
 {
   var outputFormat = "JSON";
   requestID = (requestID === null ? 0 : requestID + 1);
   var requestStr = "http://ding.eu/ding2/XML_DM_REQUEST?sessionID=" + sessionID + "&requestID=" + requestID + "&language=de&outputFormat=" + outputFormat + "&command=&execInst=normal&useRealtime=1&locationServerActive=1&anySigWhenPerfectNoOtherMatches=1&convertCorssingsITKernal2LocationServer=1&convertStopsPTKernel2LocationServer=1&convertCoord2LocationServer=1&anyMaxSizeHitList=50";
   var now = new Date();
-  var location = "Universitat Ulm";
-  requestStr += "&itdDateDay=" + (now.getDay() < 10 ? "0" + now.getDay() : "" + now.getDay());
-  requestStr += "&itdDateMonth=" + (now.getMonth() < 10 ? "0" + now.getMonth() : "" + now.getMonth());
-  requestStr += "&itdDateYear=" + now.getFullYear().toString().substring(2,4);
-  requestStr += "&itdTimeHour=" + (now.getHours() < 10 ? "0" + now.getHours() : "" + now.getHours());
-  requestStr += "&itdTimeMinute=" + (now.getMinutes() < 10 ? "0" + now.getMinutes() : "" + now.getMinutes());
-  requestStr += "&type_dm=any";
+  var location = "Pranger";
+  if (addTime !== null && !addTime)
+    {
+      requestStr += "&itdDateDay=" + (now.getDay() < 10 ? "0" + now.getDay() : "" + now.getDay());
+      requestStr += "&itdDateMonth=" + (now.getMonth() < 10 ? "0" + now.getMonth() : "" + now.getMonth());
+      requestStr += "&itdDateYear=" + now.getFullYear().toString().substring(2,4);
+      requestStr += "&itdTimeHour=" + (now.getHours() < 10 ? "0" + now.getHours() : "" + now.getHours());
+      requestStr += "&itdTimeMinute=" + (now.getMinutes() < 10 ? "0" + now.getMinutes() : "" + now.getMinutes());
+      requestStr += "&type_dm=any";
+    }
   if (requestOperation === null || requestOperation == "init")
     {
       requestStr += "&name_dm=" + location;
     }
-  else if (requestOperation == "selectRoad")
-    {
+  else {
       requestArgs.forEach(function(element) {
         requestStr += "&" + element[0] + "=" + element[1];
       });
@@ -55,7 +60,7 @@ function requestBusData(sessionID, requestOperation, requestArgs)
   
   console.log("Request: " + requestStr);
   
-  httpRequest(requestStr, requestOperation);
+  httpRequest(requestStr, (requestOperation === null ? "init" : requestOperation));
 }
 
 function getEntry(array, name)
@@ -89,28 +94,15 @@ function getBestRoadFromList(roadList)
     {
       if (roadList[i].best == 1)
         {
-          ret = [i,roadList[i]];
+          ret = [i, roadList[i]];
         }
     }
+  return ret;
 }
 
-function getIDString(id, entry)
+function getIDString(id)
 {
-  var ret = "";
-  switch (entry.anyType)
-    {
-      case "stop":
-        ret += "0";
-        break;
-      case "loc":
-        ret += "1";
-        break;
-      case "street":
-        ret += "2";
-        break;
-    }
-  ret += ":";
-  ret += id;
+  return id + ":" + (id+1);
 }
 
 function initialRequest() {
@@ -131,14 +123,24 @@ function selectRoad() {
     }
 }
 
+function getBusses() {
+  console.log("xhttp: state: " + this.readyState + ", status: "+ this.status);
+  if (this.readyState == 4 && this.status == 200)
+    {
+      console.log("Response text: " + this.responseText);
+      handleGetBussesRequest(JSON.parse(this.responseText));
+    }
+}
+
 function handleInitialRequest(response) {
   console.log("Response: " + JSON.stringify(response));
   var sessionID = getEntry(response.parameters, "sessionID");
   console.log("Session ID: " + sessionID);
   var bestStop = getBestRoadFromList(response.dm.points);
-  var bestStopID = getIDString(bestStop[0], bestStop[1]);
+  var bestStopID = getIDString(bestStop[0]);
   requestBusData(sessionID, "selectRoad", [
-    ["name_dm", bestStopID]
+    ["name_dm", bestStopID],
+    ["nameState_dm", "list"]
   ]);
 }
 
@@ -146,6 +148,62 @@ function handleRoadSelectRequest(response) {
   console.log("Response: " + JSON.stringify(response));
   var sessionID = getEntry(response.parameters, "sessionID");
   console.log("Session ID: " + sessionID);
+  busses = [];
+  //response.dm.itdOdvAssignedStops.forEach(function(element){
+  var element = response.dm.itdOdvAssignedStops[0];
+    console.log("Stop: " + element + ", Stop ID: " + element.stopID);
+    requestBusData(0, "getBusses", [
+      ["typeInfo_dm","stopID"],
+      ["nameInfo_dm",element.stopID],
+      ["deleteAssignedStops_dm", 1],
+      ["mode", "direct"]
+    ]);
+    busRequestsPending++;
+  //});
+}
+
+function handleGetBussesRequest(response) {
+  console.log("Response: " + JSON.stringify(response));
+  var sessionID = getEntry(response.parameters, "sessionID");
+  console.log("Session ID: " + sessionID);
+  var departures = response.departureList !== null ? response.departureList : [];
+  for (var i = 0; i < Math.max(departures.length,3); i++)
+    {
+      var bus = departures[i];
+      busses.push([
+        bus.nameWO,
+        bus.countdown,
+        bus.servingLine.number,
+        bus.servingLine.direction
+      ]);
+      busRequestsPending--;
+    }
+  if (busRequestsPending <= 0)
+    {
+      var busList = busListToEntries(busses);
+      updateMenuItems((busList !== null && busList.length > 0) ? busList : []);
+    }
+}
+
+function busListToEntries(busList)
+{
+  var itemList = [{
+        title: 'Request',
+        icon: 'images/menu_icon.png',
+        subtitle: 'Get bus-data'
+      }];
+  busList.forEach(function(element){
+    itemList.push({
+      name: element[2] + " " + element[3],
+      subtitle: "(" + element[1] + "min) " + element[0]
+    });
+  });
+  return itemList;
+}
+
+function updateMenuItems(items)
+{
+  menu.items(0, items);
 }
 
 function httpRequest(requestStr, requestOperation)
@@ -159,29 +217,37 @@ function httpRequest(requestStr, requestOperation)
     {
       xhttp.onreadystatechange = selectRoad;
     }
+  else if (requestOperation == "getBusses")
+    {
+      xhttp.onreadystatechange = getBusses;
+    }
   xhttp.open("GET", requestStr, true);
   xhttp.send();
 }
 
-var main = new UI.Menu({
-sections: [{
-    items: [{
-      title: 'Request',
-      icon: 'images/menu_icon.png',
-      subtitle: 'Get bus-data'
+function newBusMenu(busList) {
+  var main = new UI.Menu({
+  sections: [{
+      items: [{
+        title: 'Request',
+        icon: 'images/menu_icon.png',
+        subtitle: 'Get bus-data'
+      }]
     }]
-  }]
-});
-main.on('select', function(e) {
-  console.log('Selected item #' + e.itemIndex + ' of section #' + e.sectionIndex);
-  console.log('The item is titled "' + e.item.title + '"');
-  
-  if (e.itemIndex === 0 && e.sectionIndex === 0)
-    {
-      requestBusData(0);
-    }
-});
-main.show();
+  });
+  menu = main;
+  main.on('select', function(e) {
+    console.log('Selected item #' + e.itemIndex + ' of section #' + e.sectionIndex);
+    console.log('The item is titled "' + e.item.title + '"');
+    
+    if (e.itemIndex === 0 && e.sectionIndex === 0)
+      {
+        requestBusData(0, "init");
+      }
+  });
+  main.show();
+}
+newBusMenu([]);
 newBusRequest();
 
 /*
