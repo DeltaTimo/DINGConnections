@@ -4,13 +4,36 @@
  * This is where you write your app.
  */
 
+var requestID = 0;
 var UI = require('ui');
 //var Vector2 = require('vector2');
 
-function requestBusData(sessionID)
+function responseToString(errorCode)
+{
+  var ret;
+  switch (errorCode)
+    {
+      case -8010:
+        ret = "getClosestStop";
+        break;
+      case -8011:
+        ret = "selectRoad";
+        break;
+    }
+  return (ret === null ? "" : ret);
+}
+
+function newBusRequest()
+{
+  requestID = null;
+  requestBusData(0);
+}
+
+function requestBusData(sessionID, requestOperation, requestArgs)
 {
   var outputFormat = "JSON";
-  var requestStr = "http://ding.eu/ding2/XML_DM_REQUEST?sessionID=" + sessionID + "&requestID=0&language=de&outputFormat=" + outputFormat + "&command=&execInst=normal&useRealtime=1&locationServerActive=1&anySigWhenPerfectNoOtherMatches=1&convertCorssingsITKernal2LocationServer=1&convertStopsPTKernel2LocationServer=1&convertCoord2LocationServer=1&anyMaxSizeHitList=50";
+  requestID = (requestID === null ? 0 : requestID + 1);
+  var requestStr = "http://ding.eu/ding2/XML_DM_REQUEST?sessionID=" + sessionID + "&requestID=" + requestID + "&language=de&outputFormat=" + outputFormat + "&command=&execInst=normal&useRealtime=1&locationServerActive=1&anySigWhenPerfectNoOtherMatches=1&convertCorssingsITKernal2LocationServer=1&convertStopsPTKernel2LocationServer=1&convertCoord2LocationServer=1&anyMaxSizeHitList=50";
   var now = new Date();
   var location = "Universitat Ulm";
   requestStr += "&itdDateDay=" + (now.getDay() < 10 ? "0" + now.getDay() : "" + now.getDay());
@@ -19,32 +42,123 @@ function requestBusData(sessionID)
   requestStr += "&itdTimeHour=" + (now.getHours() < 10 ? "0" + now.getHours() : "" + now.getHours());
   requestStr += "&itdTimeMinute=" + (now.getMinutes() < 10 ? "0" + now.getMinutes() : "" + now.getMinutes());
   requestStr += "&type_dm=any";
-  requestStr += "&name_dm=" + location;
+  if (requestOperation === null || requestOperation == "init")
+    {
+      requestStr += "&name_dm=" + location;
+    }
+  else if (requestOperation == "selectRoad")
+    {
+      requestArgs.forEach(function(element) {
+        requestStr += "&" + element[0] + "=" + element[1];
+      });
+    }
   
-  console.log(requestStr);
+  console.log("Request: " + requestStr);
   
-  httpBusRequest(requestStr);
+  httpRequest(requestStr, requestOperation);
+}
+
+function getEntry(array, name)
+{
+  var ret;
+  array.forEach(function(element) {
+    if (element.name == name)
+      {
+        ret = element.value;
+      }
+  });
+  return ret;
+}
+
+function getEntryWhere(array, entryname, compareto)
+{
+  var ret;
+  array.forEach(function(element) {
+    if (element[entryname] !== null && element[entryname] == compareto)
+      {
+        ret = element;
+      }
+  });
+  return (ret === null ? false : ret);
+}
+
+function getBestRoadFromList(roadList)
+{
+  var ret = [];
+  for (var i = 0; i < roadList.length; i++)
+    {
+      if (roadList[i].best == 1)
+        {
+          ret = [i,roadList[i]];
+        }
+    }
+}
+
+function getIDString(id, entry)
+{
+  var ret = "";
+  switch (entry.anyType)
+    {
+      case "stop":
+        ret += "0";
+        break;
+      case "loc":
+        ret += "1";
+        break;
+      case "street":
+        ret += "2";
+        break;
+    }
+  ret += ":";
+  ret += id;
 }
 
 function initialRequest() {
   console.log("xhttp: state: " + this.readyState + ", status: "+ this.status);
   if (this.readyState == 4 && this.status == 200)
     {
-      console.log(this.responseText);
+      console.log("Response text: " + this.responseText);
       handleInitialRequest(JSON.parse(this.responseText));
     }
 }
 
+function selectRoad() {
+  console.log("xhttp: state: " + this.readyState + ", status: "+ this.status);
+  if (this.readyState == 4 && this.status == 200)
+    {
+      console.log("Response text: " + this.responseText);
+      handleRoadSelectRequest(JSON.parse(this.responseText));
+    }
+}
+
 function handleInitialRequest(response) {
-  console.log("Response: " + response);
-  var sessionID = response.parameters.sessionID;
+  console.log("Response: " + JSON.stringify(response));
+  var sessionID = getEntry(response.parameters, "sessionID");
+  console.log("Session ID: " + sessionID);
+  var bestStop = getBestRoadFromList(response.dm.points);
+  var bestStopID = getIDString(bestStop[0], bestStop[1]);
+  requestBusData(sessionID, "selectRoad", [
+    ["name_dm", bestStopID]
+  ]);
+}
+
+function handleRoadSelectRequest(response) {
+  console.log("Response: " + JSON.stringify(response));
+  var sessionID = getEntry(response.parameters, "sessionID");
   console.log("Session ID: " + sessionID);
 }
 
-function httpBusRequest(requestStr)
+function httpRequest(requestStr, requestOperation)
 {
   var xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = initialRequest;
+  if (requestOperation === null || requestOperation == "init")
+    {
+      xhttp.onreadystatechange = initialRequest;
+    }
+  else if (requestOperation == "selectRoad")
+    {
+      xhttp.onreadystatechange = selectRoad;
+    }
   xhttp.open("GET", requestStr, true);
   xhttp.send();
 }
@@ -68,7 +182,7 @@ main.on('select', function(e) {
     }
 });
 main.show();
-requestBusData(0);
+newBusRequest();
 
 /*
 var main = new UI.Card({
