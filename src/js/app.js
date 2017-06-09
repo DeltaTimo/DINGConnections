@@ -8,9 +8,14 @@ var requestID = 0;
 var busses = [];
 var busRequestsPending = 0;
 var menu;
+var requestEntry = {
+        title: 'Request',
+        subtitle: 'Get bus-data'
+      };
 var UI = require('ui');
 //var Vector2 = require('vector2');
 
+/*
 function responseToString(errorCode)
 {
   var ret;
@@ -31,6 +36,7 @@ function newBusRequest()
   requestID = null;
   requestBusData(0, "init");
 }
+*/
 
 function requestBusData(sessionID, requestOperation, requestArgs, addTime)
 {
@@ -87,6 +93,7 @@ function getEntry(array, name)
   return ret;
 }
 
+/*
 function getEntryWhere(array, entryname, compareto)
 {
   var ret;
@@ -134,6 +141,7 @@ function selectRoad() {
       handleRoadSelectRequest(JSON.parse(this.responseText));
     }
 }
+*/
 
 function getBusses() {
   console.log("xhttp: state: " + this.readyState + ", status: "+ this.status);
@@ -153,6 +161,7 @@ function getStops() {
     }
 }
 
+/*
 function handleInitialRequest(response) {
   console.log("Response: " + JSON.stringify(response));
   var sessionID = getEntry(response.parameters, "sessionID");
@@ -182,6 +191,7 @@ function handleRoadSelectRequest(response) {
     busRequestsPending++;
   });
 }
+*/
 
 function handleGetBussesRequest(response) {
   console.log("Response: " + JSON.stringify(response));
@@ -229,11 +239,7 @@ function busListToEntries(busList)
   busList.sort(function(a,b){
     return a[1] - b[1];
   });
-  var itemList = [{
-        title: 'Request',
-        icon: 'images/menu_icon.png',
-        subtitle: 'Get bus-data'
-      }];
+  var itemList = [requestEntry];
   for (var i = 0; i < Math.min(10, busList.length); i++)
     {
       itemList.push({
@@ -252,6 +258,7 @@ function updateMenuItems(items)
 function httpRequest(requestStr, requestOperation)
 {
   var xhttp = new XMLHttpRequest();
+  /*
   if (requestOperation === null || requestOperation == "init")
     {
       xhttp.onreadystatechange = initialRequest;
@@ -260,23 +267,25 @@ function httpRequest(requestStr, requestOperation)
     {
       xhttp.onreadystatechange = selectRoad;
     }
+  else
+  */
+  if (requestOperation == "getStops")
+    {
+      xhttp.onreadystatechange = getStops;
+    }
   else if (requestOperation == "getBusses")
     {
       xhttp.onreadystatechange = getBusses;
-    }
-  else if (requestOperation == "getStops")
-    {
-      xhttp.onreadystatechange = getStops;
     }
   xhttp.open("GET", requestStr, true);
   xhttp.send();
 }
 
 function newErrorEntry(errorMsg, errorMsg2) {
-  updateMenuItems([
+  updateMenuItems([requestEntry,
     {
-      title: 'Error',
-      subtitle: "Couldn't get location!"
+      title: 'Error! ' + errorMsg,
+      subtitle: errorMsg2
     }
   ]);
 }
@@ -284,11 +293,7 @@ function newErrorEntry(errorMsg, errorMsg2) {
 function newBusMenu(busList) {
   var main = new UI.Menu({
   sections: [{
-      items: [{
-        title: 'Request',
-        icon: 'images/menu_icon.png',
-        subtitle: 'Get bus-data'
-      }]
+      items: [requestEntry]
     }]
   });
   menu = main;
@@ -298,11 +303,7 @@ function newBusMenu(busList) {
     
     if (e.itemIndex === 0 && e.sectionIndex === 0)
       {
-        this.items(0,[{
-          title: 'Request',
-          icon: 'images/menu_icon.png',
-          subtitle: 'Get bus-data'
-        }]);
+        this.items(0,[requestEntry]);
         //requestBusData(0, "init");
         getPosAndRequestBusses();
       }
@@ -315,93 +316,8 @@ newBusMenu([]);
 function getPosAndRequestBusses()
 {
   navigator.geolocation.getCurrentPosition(function(pos){
-    console.log("Lat: " + pos.coords.latitude + ", Lon: " + pos.coords.longitude);
     requestStops(pos.coords.latitude, pos.coords.longitude);
-  }, function(error) { console.log("ERROR GETTING LOCATION!"); }, {enableHighAccuracy: true, maximumAge: 10000, timeout: 10000});
+  }, function(error) { newErrorEntry("Getting location", "Couldn't get location!"); }, {enableHighAccuracy: true, maximumAge: 10000, timeout: 10000});
 }
 
-/*
-var main = new UI.Card({
-  title: 'Pebble.js',
-  icon: 'images/menu_icon.png',
-  subtitle: 'Hello World!',
-  body: 'Press any button.',
-  subtitleColor: 'indigo', // Named colors
-  bodyColor: '#9a0036' // Hex colors
-});
-
-main.show();
-*/
-
-/*
-main.on('click', 'up', function(e) {
-  var menu = new UI.Menu({
-    sections: [{
-      items: [{
-        title: 'Request',
-        icon: 'images/menu_icon.png',
-        subtitle: 'Get bus-data'
-      }, {
-        title: 'Second Item',
-        subtitle: 'Subtitle Text'
-      }, {
-        title: 'Third Item',
-      }, {
-        title: 'Fourth Item',
-      }]
-    }]
-  });
-  menu.on('select', function(e) {
-    console.log('Selected item #' + e.itemIndex + ' of section #' + e.sectionIndex);
-    console.log('The item is titled "' + e.item.title + '"');
-  });
-  menu.show();
-});
-*/
-
-/*
-main.on('click', 'select', function(e) {
-  var wind = new UI.Window({
-    backgroundColor: 'black'
-  });
-  var radial = new UI.Radial({
-    size: new Vector2(140, 140),
-    angle: 0,
-    angle2: 300,
-    radius: 20,
-    backgroundColor: 'cyan',
-    borderColor: 'celeste',
-    borderWidth: 1,
-  });
-  var textfield = new UI.Text({
-    size: new Vector2(140, 60),
-    font: 'gothic-24-bold',
-    text: 'Dynamic\nWindow',
-    textAlign: 'center'
-  });
-  var windSize = wind.size();
-  // Center the radial in the window
-  var radialPos = radial.position()
-      .addSelf(windSize)
-      .subSelf(radial.size())
-      .multiplyScalar(0.5);
-  radial.position(radialPos);
-  // Center the textfield in the window
-  var textfieldPos = textfield.position()
-      .addSelf(windSize)
-      .subSelf(textfield.size())
-      .multiplyScalar(0.5);
-  textfield.position(textfieldPos);
-  wind.add(radial);
-  wind.add(textfield);
-  wind.show();
-});
-
-main.on('click', 'down', function(e) {
-  var card = new UI.Card();
-  card.title('A Card');
-  card.subtitle('Is a Window');
-  card.body('The simplest window type in Pebble.js.');
-  card.show();
-});
-*/
+getPosAndRequestBusses();
