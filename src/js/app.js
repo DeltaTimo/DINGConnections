@@ -320,7 +320,7 @@ function newBusMenu(busList) {
       {
         this.items(0,[requestEntry]);
         //requestBusData(0, "init");
-        getPosAndRequestBusses();
+        getPosAndRequestBusses(0, 10000);
       }
   });
   main.show();
@@ -328,13 +328,32 @@ function newBusMenu(busList) {
 newBusMenu([]);
 //newBusRequest();
 
-function getPosAndRequestBusses()
+function getPosAndRequestBusses(retry, timeout)
 {
-  newEntry("Please wait...", "Getting position");
+  if (retry === 0) {
+      newEntry("Please wait...", "Getting position");
+    }
+  else
+    {
+      newEntry("Please wait...", "Retrying position (" + retry + ")");
+    }
   navigator.geolocation.getCurrentPosition(function(pos){
     newEntry("Please wait...", "Getting bus stops");
     requestStops(pos.coords.latitude, pos.coords.longitude);
-  }, function(error) { newEntry("ERROR", "Couldn't get location!"); }, {enableHighAccuracy: true, maximumAge: 10000, timeout: 10000});
+  }, retry === 0 ? retryPos1 : (retry == 1 ? retryPos2 : positionError), {enableHighAccuracy: true, maximumAge: 10000, timeout: timeout});
 }
 
-getPosAndRequestBusses();
+function positionError(error)
+{
+  newEntry("ERROR", "Couldn't get location!");
+}
+function retryPos1(error)
+{
+  getPosAndRequestBusses(1, 5000);
+}
+function retryPos2(error)
+{
+  getPosAndRequestBusses(2, 2500);
+}
+
+getPosAndRequestBusses(0, 10000);
