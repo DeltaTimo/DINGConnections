@@ -64,7 +64,7 @@ function requestBusData(sessionID, requestOperation, requestArgs, addTime)
       });
     }
   
-  console.log("Request: " + requestStr);
+  //console.log("Request: " + requestStr);
   
   httpRequest(requestStr, (requestOperation === null ? "init" : requestOperation));
 }
@@ -76,7 +76,7 @@ function requestStops(latitude, longitude)
   requestID = (requestID === null ? 0 : 1);
   var requestStr = "http://ding.eu/ding2/XML_COORD_REQUEST?outputFormat=" + outputFormat + "&coord=" + longitude + ":" + latitude + ":WGS84&mapNameOutput=WGS84&inclFilter=1&radius_1=3000&type_1=STOP&max=" + maxStops;
   
-  console.log("Stop Request: " + requestStr);
+  //console.log("Stop Request: " + requestStr);
   
   httpRequest(requestStr, "getStops");
 }
@@ -144,19 +144,19 @@ function selectRoad() {
 */
 
 function getBusses() {
-  console.log("xhttp: state: " + this.readyState + ", status: "+ this.status);
+  //console.log("xhttp: state: " + this.readyState + ", status: "+ this.status);
   if (this.readyState == 4 && this.status == 200)
     {
-      console.log("Response text: " + this.responseText);
+      //console.log("Response text: " + this.responseText);
       handleGetBussesRequest(JSON.parse(this.responseText));
     }
 }
 
 function getStops() {
-  console.log("xhttp: state: " + this.readyState + ", status: "+ this.status);
+  //console.log("xhttp: state: " + this.readyState + ", status: "+ this.status);
   if (this.readyState == 4 && this.status == 200)
     {
-      console.log("Response text: " + this.responseText);
+      //console.log("Response text: " + this.responseText);
       handleGetStopsRequest(JSON.parse(this.responseText));
     }
 }
@@ -194,9 +194,9 @@ function handleRoadSelectRequest(response) {
 */
 
 function handleGetBussesRequest(response) {
-  console.log("Response: " + JSON.stringify(response));
+  //console.log("Response: " + JSON.stringify(response));
   var sessionID = getEntry(response.parameters, "sessionID");
-  console.log("Session ID: " + sessionID);
+  //console.log("Session ID: " + sessionID);
   var departures = response.departureList !== null ? response.departureList : [];
   for (var i = 0; i < Math.max(departures.length,3); i++)
     {
@@ -212,18 +212,25 @@ function handleGetBussesRequest(response) {
   if (busRequestsPending <= 0)
     {
       var busList = busListToEntries(busses);
-      updateMenuItems((busList !== null && busList.length > 0) ? busList : []);
+      if (busList !== null && busList.length > 0)
+        {
+          updateMenuItems((busList !== null && busList.length > 0) ? busList : []);
+        }
+      else
+        {
+          newEntry("Error", "No busses found!");
+        }
     }
 }
 
 function handleGetStopsRequest(response)
 {
-  console.log("Response: " + JSON.stringify(response));
+  //console.log("Response: " + JSON.stringify(response));
   busses = [];
   busRequestsPending = 0;
   response.pins.forEach(function(element){
   //var element = response.dm.itdOdvAssignedStops[0];
-    console.log("Stop: " + element + ", Stop ID: " + element.id);
+    //console.log("Stop: " + element + ", Stop ID: " + element.id);
     requestBusData(0, "getBusses", [
       ["typeInfo_dm","stopID"],
       ["nameInfo_dm",element.id],
@@ -232,6 +239,14 @@ function handleGetStopsRequest(response)
     ]);
     busRequestsPending++;
   });
+  if (response.pins.length < 1)
+    {
+      newEntry("Error", "No nearby stops!");
+    }
+  else
+    {
+      newEntry("Please wait...", "Getting busses");
+    }
 }
 
 function busListToEntries(busList)
@@ -298,8 +313,8 @@ function newBusMenu(busList) {
   });
   menu = main;
   main.on('select', function(e) {
-    console.log('Selected item #' + e.itemIndex + ' of section #' + e.sectionIndex);
-    console.log('The item is titled "' + e.item.title + '"');
+    //console.log('Selected item #' + e.itemIndex + ' of section #' + e.sectionIndex);
+    //console.log('The item is titled "' + e.item.title + '"');
     
     if (e.itemIndex === 0 && e.sectionIndex === 0)
       {
@@ -315,8 +330,9 @@ newBusMenu([]);
 
 function getPosAndRequestBusses()
 {
-  newEntry("Please wait.", "Getting bus stops");
+  newEntry("Please wait...", "Getting position");
   navigator.geolocation.getCurrentPosition(function(pos){
+    newEntry("Please wait...", "Getting bus stops");
     requestStops(pos.coords.latitude, pos.coords.longitude);
   }, function(error) { newEntry("ERROR", "Couldn't get location!"); }, {enableHighAccuracy: true, maximumAge: 10000, timeout: 10000});
 }
