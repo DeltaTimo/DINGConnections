@@ -281,10 +281,10 @@ function httpRequest(requestStr, requestOperation)
   xhttp.send();
 }
 
-function newErrorEntry(errorMsg, errorMsg2) {
+function newEntry(errorMsg, errorMsg2) {
   updateMenuItems([requestEntry,
     {
-      title: 'Error! ' + errorMsg,
+      title: errorMsg,
       subtitle: errorMsg2
     }
   ]);
@@ -315,9 +315,10 @@ newBusMenu([]);
 
 function getPosAndRequestBusses()
 {
+  newEntry("Please wait.", "Getting bus stops");
   navigator.geolocation.getCurrentPosition(function(pos){
     requestStops(pos.coords.latitude, pos.coords.longitude);
-  }, function(error) { newErrorEntry("Getting location", "Couldn't get location!"); }, {enableHighAccuracy: true, maximumAge: 10000, timeout: 10000});
+  }, function(error) { newEntry("ERROR", "Couldn't get location!"); }, {enableHighAccuracy: true, maximumAge: 10000, timeout: 10000});
 }
 
 getPosAndRequestBusses();
