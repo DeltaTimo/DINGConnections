@@ -63,6 +63,18 @@ function requestBusData(sessionID, requestOperation, requestArgs, addTime)
   httpRequest(requestStr, (requestOperation === null ? "init" : requestOperation));
 }
 
+function requestStops(latitude, longitude)
+{
+  var outputFormat = "JSON";
+  var maxStops = 3;
+  requestID = (requestID === null ? 0 : 1);
+  var requestStr = "http://ding.eu/ding2/XML_COORD_REQUEST?outputFormat=" + outputFormat + "&coord=" + longitude + ":" + latitude + ":WGS84&mapNameOutput=WGS84&inclFilter=1&radius_1=3000&type_1=STOP&max=" + maxStops;
+  
+  console.log("Stop Request: " + requestStr);
+  
+  httpRequest(requestStr, "getStops");
+}
+
 function getEntry(array, name)
 {
   var ret;
@@ -132,6 +144,15 @@ function getBusses() {
     }
 }
 
+function getStops() {
+  console.log("xhttp: state: " + this.readyState + ", status: "+ this.status);
+  if (this.readyState == 4 && this.status == 200)
+    {
+      console.log("Response text: " + this.responseText);
+      handleGetStopsRequest(JSON.parse(this.responseText));
+    }
+}
+
 function handleInitialRequest(response) {
   console.log("Response: " + JSON.stringify(response));
   var sessionID = getEntry(response.parameters, "sessionID");
@@ -185,6 +206,24 @@ function handleGetBussesRequest(response) {
     }
 }
 
+function handleGetStopsRequest(response)
+{
+  console.log("Response: " + JSON.stringify(response));
+  busses = [];
+  busRequestsPending = 0;
+  response.pins.forEach(function(element){
+  //var element = response.dm.itdOdvAssignedStops[0];
+    console.log("Stop: " + element + ", Stop ID: " + element.id);
+    requestBusData(0, "getBusses", [
+      ["typeInfo_dm","stopID"],
+      ["nameInfo_dm",element.id],
+      ["deleteAssignedStops_dm", 1],
+      ["mode", "direct"]
+    ]);
+    busRequestsPending++;
+  });
+}
+
 function busListToEntries(busList)
 {
   busList.sort(function(a,b){
@@ -225,6 +264,10 @@ function httpRequest(requestStr, requestOperation)
     {
       xhttp.onreadystatechange = getBusses;
     }
+  else if (requestOperation == "getStops")
+    {
+      xhttp.onreadystatechange = getStops;
+    }
   xhttp.open("GET", requestStr, true);
   xhttp.send();
 }
@@ -260,13 +303,22 @@ function newBusMenu(busList) {
           icon: 'images/menu_icon.png',
           subtitle: 'Get bus-data'
         }]);
-        requestBusData(0, "init");
+        //requestBusData(0, "init");
+        getPosAndRequestBusses();
       }
   });
   main.show();
 }
 newBusMenu([]);
-newBusRequest();
+//newBusRequest();
+
+function getPosAndRequestBusses()
+{
+  navigator.geolocation.getCurrentPosition(function(pos){
+    console.log("Lat: " + pos.coords.latitude + ", Lon: " + pos.coords.longitude);
+    requestStops(pos.coords.latitude, pos.coords.longitude);
+  }, function(error) { console.log("ERROR GETTING LOCATION!"); }, {enableHighAccuracy: true, maximumAge: 10000, timeout: 10000});
+}
 
 /*
 var main = new UI.Card({
