@@ -148,16 +148,30 @@ function getBusses() {
   if (this.readyState == 4 && this.status == 200)
     {
       //console.log("Response text: " + this.responseText);
-      handleGetBussesRequest(JSON.parse(this.responseText));
+      if (this.status == 200)
+        {
+          handleGetBussesRequest(JSON.parse(this.responseText));
+        }
+      else
+        {
+          newEntry("Error", "Couldn't reach server");
+        }
     }
 }
 
 function getStops() {
   //console.log("xhttp: state: " + this.readyState + ", status: "+ this.status);
-  if (this.readyState == 4 && this.status == 200)
+  if (this.readyState == 4)
     {
       //console.log("Response text: " + this.responseText);
-      handleGetStopsRequest(JSON.parse(this.responseText));
+      if (this.status == 200)
+        {
+          handleGetStopsRequest(JSON.parse(this.responseText));
+        }
+      else
+        {
+          newEntry("Error", "Couldn't reach server");
+        }
     }
 }
 
@@ -218,7 +232,7 @@ function handleGetBussesRequest(response) {
         }
       else
         {
-          newEntry("Error", "No busses found!");
+          newEntry("Error", "No busses found");
         }
     }
 }
@@ -241,7 +255,7 @@ function handleGetStopsRequest(response)
   });
   if (response.pins.length < 1)
     {
-      newEntry("Error", "No nearby stops!");
+      newEntry("Error", "No nearby stops");
     }
   else
     {
@@ -345,7 +359,7 @@ function getPosAndRequestBusses(retry, timeout)
 
 function positionError(error)
 {
-  newEntry("ERROR", "Couldn't get location!");
+  newEntry("Error", "Couldn't get location");
 }
 function retryPos1(error)
 {
