@@ -242,6 +242,14 @@ function handleGetStopsRequest(response)
   //console.log("Response: " + JSON.stringify(response));
   busses = [];
   busRequestsPending = 0;
+  if (response.pins.length < 1)
+    {
+      newEntry("Error", "No nearby stops");
+    }
+  else
+    {
+      newEntry("Please wait...", "Requesting busses");
+    }
   response.pins.forEach(function(element){
   //var element = response.dm.itdOdvAssignedStops[0];
     //console.log("Stop: " + element + ", Stop ID: " + element.id);
@@ -253,11 +261,7 @@ function handleGetStopsRequest(response)
     ]);
     busRequestsPending++;
   });
-  if (response.pins.length < 1)
-    {
-      newEntry("Error", "No nearby stops");
-    }
-  else
+  if (response.pins.length >= 1)
     {
       newEntry("Please wait...", "Getting busses");
     }
