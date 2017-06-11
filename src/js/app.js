@@ -1,9 +1,3 @@
-/**
- * Welcome to Pebble.js!
- *
- * This is where you write your app.
- */
-
 var requestID = 0;
 var busses = [];
 var stopDistances = [];
@@ -16,30 +10,6 @@ var requestEntry = {
 var locationLat;
 var locationLon;
 var UI = require('ui');
-//var Vector2 = require('vector2');
-
-/*
-function responseToString(errorCode)
-{
-  var ret;
-  switch (errorCode)
-    {
-      case -8010:
-        ret = "getClosestStop";
-        break;
-      case -8011:
-        ret = "selectRoad";
-        break;
-    }
-  return (ret === null ? "" : ret);
-}
-
-function newBusRequest()
-{
-  requestID = null;
-  requestBusData(0, "init");
-}
-*/
 
 function getDistanceFromLatLonInKm(lat2,lon2) {
   var lat1 = locationLat;
@@ -90,9 +60,6 @@ function requestBusData(sessionID, requestOperation, requestArgs, addTime)
         requestStr += "&" + element[0] + "=" + element[1];
       });
     }
-  
-  //console.log("Request: " + requestStr);
-  
   httpRequest(requestStr, (requestOperation === null ? "init" : requestOperation));
 }
 
@@ -107,78 +74,12 @@ function requestStops(latitude, longitude)
   var radius = 6000;
   var requestStr = "http://ding.eu/ding2/XML_COORD_REQUEST?outputFormat=" + outputFormat + "&coord=" + longitude + ":" + latitude + ":WGS84&mapNameOutput=WGS84&inclFilter=1&radius_1=" + radius + "&type_1=STOP&max=" + maxStops;
   
-  //console.log("Stop Request: " + requestStr);
-  
   httpRequest(requestStr, "getStops");
 }
 
-function getEntry(array, name)
-{
-  var ret;
-  array.forEach(function(element) {
-    if (element.name == name)
-      {
-        ret = element.value;
-      }
-  });
-  return ret;
-}
-
-/*
-function getEntryWhere(array, entryname, compareto)
-{
-  var ret;
-  array.forEach(function(element) {
-    if (element[entryname] !== null && element[entryname] == compareto)
-      {
-        ret = element;
-      }
-  });
-  return (ret === null ? false : ret);
-}
-
-function getBestRoadFromList(roadList)
-{
-  var ret = [];
-  for (var i = 0; i < roadList.length; i++)
-    {
-      if (roadList[i].best == 1)
-        {
-          ret = [i, roadList[i]];
-        }
-    }
-  return ret;
-}
-
-function getIDString(id)
-{
-  return id + ":" + (id+1);
-}
-
-function initialRequest() {
-  console.log("xhttp: state: " + this.readyState + ", status: "+ this.status);
-  if (this.readyState == 4 && this.status == 200)
-    {
-      console.log("Response text: " + this.responseText);
-      handleInitialRequest(JSON.parse(this.responseText));
-    }
-}
-
-function selectRoad() {
-  console.log("xhttp: state: " + this.readyState + ", status: "+ this.status);
-  if (this.readyState == 4 && this.status == 200)
-    {
-      console.log("Response text: " + this.responseText);
-      handleRoadSelectRequest(JSON.parse(this.responseText));
-    }
-}
-*/
-
 function getBusses() {
-  //console.log("xhttp: state: " + this.readyState + ", status: "+ this.status);
   if (this.readyState == 4 && this.status == 200)
     {
-      //console.log("Response text: " + this.responseText);
       if (this.status == 200)
         {
           handleGetBussesRequest(JSON.parse(this.responseText));
@@ -191,10 +92,8 @@ function getBusses() {
 }
 
 function getStops() {
-  //console.log("xhttp: state: " + this.readyState + ", status: "+ this.status);
   if (this.readyState == 4)
     {
-      console.log("Response text: " + this.responseText);
       if (this.status == 200)
         {
           handleGetStopsRequest(JSON.parse(this.responseText));
@@ -205,38 +104,6 @@ function getStops() {
         }
     }
 }
-
-/*
-function handleInitialRequest(response) {
-  console.log("Response: " + JSON.stringify(response));
-  var sessionID = getEntry(response.parameters, "sessionID");
-  console.log("Session ID: " + sessionID);
-  var bestStop = getBestRoadFromList(response.dm.points);
-  var bestStopID = getIDString(bestStop[0]);
-  requestBusData(sessionID, "selectRoad", [
-    ["name_dm", bestStopID],
-    ["nameState_dm", "list"]
-  ]);
-}
-
-function handleRoadSelectRequest(response) {
-  console.log("Response: " + JSON.stringify(response));
-  var sessionID = getEntry(response.parameters, "sessionID");
-  console.log("Session ID: " + sessionID);
-  busses = [];
-  response.dm.itdOdvAssignedStops.forEach(function(element){
-  //var element = response.dm.itdOdvAssignedStops[0];
-    console.log("Stop: " + element + ", Stop ID: " + element.stopID);
-    requestBusData(0, "getBusses", [
-      ["typeInfo_dm","stopID"],
-      ["nameInfo_dm",element.stopID],
-      ["deleteAssignedStops_dm", 1],
-      ["mode", "direct"]
-    ]);
-    busRequestsPending++;
-  });
-}
-*/
 
 function handleGetBussesRequest(response) {
   console.log("Response: " + JSON.stringify(response));
@@ -261,10 +128,17 @@ function handleGetBussesRequest(response) {
     }
   if (busRequestsPending <= 0)
     {
-      var busList = busListToEntries(busses);
-      if (busList !== null && busList.length > 0)
+      if (busses !== null && busses.length > 0)
         {
-          updateMenuItems((busList !== null && busList.length > 0) ? busList : []);
+          var busList = busListToEntries(busses);
+          if (busList !== null && busList.length > 0)
+            {
+              updateMenuItems((busList !== null && busList.length > 0) ? busList : []);
+            }
+          else
+            {
+              newEntry("Error", "No busses found");
+            }
         }
       else
         {
@@ -275,7 +149,6 @@ function handleGetBussesRequest(response) {
 
 function handleGetStopsRequest(response)
 {
-  //console.log("Response: " + JSON.stringify(response));
   busses = [];
   stopDistances = [];
   busRequestsPending = 0;
@@ -288,16 +161,6 @@ function handleGetStopsRequest(response)
       newEntry("Please wait...", "Requesting busses");
     }
   response.pins.forEach(function(element){
-  //var element = response.dm.itdOdvAssignedStops[0];
-    //console.log("Stop: " + element + ", Stop ID: " + element.id);
-    //1000000
-    //var coords = element.coords.split(",");
-    //var coordLat = parseInt(coords[0]) / 1000000;
-    //var coordLon = parseInt(coords[1]) / 1000000;
-    //if (stopDistances[element.id.toString()] === null)
-      //{
-      //    stopDistances[element.id.toString()] = getDistanceFromLatLonInKm(coordLat,coordLon);
-      //}
     stopDistances[element.id] = element.coords;
     requestBusData(0, "getBusses", [
       ["typeInfo_dm","stopID"],
@@ -307,7 +170,6 @@ function handleGetStopsRequest(response)
     ]);
     busRequestsPending++;
   });
-  console.log(stopDistances);
   if (response.pins.length >= 1)
     {
       newEntry("Please wait...", "Getting busses");
@@ -338,17 +200,6 @@ function updateMenuItems(items)
 function httpRequest(requestStr, requestOperation)
 {
   var xhttp = new XMLHttpRequest();
-  /*
-  if (requestOperation === null || requestOperation == "init")
-    {
-      xhttp.onreadystatechange = initialRequest;
-    }
-  else if (requestOperation == "selectRoad")
-    {
-      xhttp.onreadystatechange = selectRoad;
-    }
-  else
-  */
   if (requestOperation == "getStops")
     {
       xhttp.onreadystatechange = getStops;
@@ -378,9 +229,6 @@ function newBusMenu(busList) {
   });
   menu = main;
   main.on('select', function(e) {
-    //console.log('Selected item #' + e.itemIndex + ' of section #' + e.sectionIndex);
-    //console.log('The item is titled "' + e.item.title + '"');
-    
     if (e.itemIndex === 0 && e.sectionIndex === 0)
       {
         this.items(0,[requestEntry]);
@@ -391,7 +239,6 @@ function newBusMenu(busList) {
   main.show();
 }
 newBusMenu([]);
-//newBusRequest();
 
 function getPosAndRequestBusses(retry, timeout)
 {
