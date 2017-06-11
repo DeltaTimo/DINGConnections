@@ -6,12 +6,15 @@
 
 var requestID = 0;
 var busses = [];
+var stopDistances = [];
 var busRequestsPending = 0;
 var menu;
 var requestEntry = {
         title: 'Request',
         subtitle: 'Get bus-data'
       };
+var locationLat;
+var locationLon;
 var UI = require('ui');
 //var Vector2 = require('vector2');
 
@@ -38,6 +41,30 @@ function newBusRequest()
 }
 */
 
+function getDistanceFromLatLonInKm(lat2,lon2) {
+  var lat1 = locationLat;
+  var lon1 = locationLon;
+  var R = 6371; // Radius of the earth in km
+  var dLat = deg2rad(lat2-lat1);  // deg2rad below
+  var dLon = deg2rad(lon2-lon1); 
+  var a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2)
+    ; 
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  var d = R * c; // Distance in km
+  return d;
+}
+
+function deg2rad(deg) {
+  return deg * (Math.PI/180);
+}
+
+function distanceToMinutes(distance) {
+  return distance * 10;
+}
+
 function requestBusData(sessionID, requestOperation, requestArgs, addTime)
 {
   var outputFormat = "JSON";
@@ -47,7 +74,7 @@ function requestBusData(sessionID, requestOperation, requestArgs, addTime)
   var location = "Pranger";
   if (addTime !== null && !addTime)
     {
-      requestStr += "&itdDateDay=" + (now.getDay() < 10 ? "0" + now.getDay() : "" + now.getDay());
+      requestStr += "&itdDateDay=" + (now.getDate() < 10 ? "0" + now.getDate() : "" + now.getDate());
       requestStr += "&itdDateMonth=" + (now.getMonth() < 10 ? "0" + now.getMonth() : "" + now.getMonth());
       requestStr += "&itdDateYear=" + now.getFullYear().toString().substring(2,4);
       requestStr += "&itdTimeHour=" + (now.getHours() < 10 ? "0" + now.getHours() : "" + now.getHours());
@@ -71,10 +98,14 @@ function requestBusData(sessionID, requestOperation, requestArgs, addTime)
 
 function requestStops(latitude, longitude)
 {
+  locationLat = latitude;
+  locationLon = longitude;
+  
   var outputFormat = "JSON";
   var maxStops = 3;
   requestID = (requestID === null ? 0 : 1);
-  var requestStr = "http://ding.eu/ding2/XML_COORD_REQUEST?outputFormat=" + outputFormat + "&coord=" + longitude + ":" + latitude + ":WGS84&mapNameOutput=WGS84&inclFilter=1&radius_1=3000&type_1=STOP&max=" + maxStops;
+  var radius = 6000;
+  var requestStr = "http://ding.eu/ding2/XML_COORD_REQUEST?outputFormat=" + outputFormat + "&coord=" + longitude + ":" + latitude + ":WGS84&mapNameOutput=WGS84&inclFilter=1&radius_1=" + radius + "&type_1=STOP&max=" + maxStops;
   
   //console.log("Stop Request: " + requestStr);
   
@@ -163,7 +194,7 @@ function getStops() {
   //console.log("xhttp: state: " + this.readyState + ", status: "+ this.status);
   if (this.readyState == 4)
     {
-      //console.log("Response text: " + this.responseText);
+      console.log("Response text: " + this.responseText);
       if (this.status == 200)
         {
           handleGetStopsRequest(JSON.parse(this.responseText));
@@ -208,9 +239,13 @@ function handleRoadSelectRequest(response) {
 */
 
 function handleGetBussesRequest(response) {
-  //console.log("Response: " + JSON.stringify(response));
-  var sessionID = getEntry(response.parameters, "sessionID");
+  console.log("Response: " + JSON.stringify(response));
   //console.log("Session ID: " + sessionID);
+  var coords = stopDistances[response.dm.points.point.ref.id].split(",");
+  var coordLat = parseInt(coords[1]) / 1000000;
+  var coordLon = parseInt(coords[0]) / 1000000;
+  var distance = getDistanceFromLatLonInKm(coordLat,coordLon);
+  console.log("Stop lat: " + coordLat + ", Stop lon: " + coordLon + ", distance: " + distance);
   var departures = response.departureList !== null ? response.departureList : [];
   for (var i = 0; i < Math.max(departures.length,3); i++)
     {
@@ -219,7 +254,8 @@ function handleGetBussesRequest(response) {
         bus.nameWO,
         bus.countdown,
         bus.servingLine.number,
-        bus.servingLine.direction
+        bus.servingLine.direction,
+        distance
       ]);
       busRequestsPending--;
     }
@@ -241,6 +277,7 @@ function handleGetStopsRequest(response)
 {
   //console.log("Response: " + JSON.stringify(response));
   busses = [];
+  stopDistances = [];
   busRequestsPending = 0;
   if (response.pins.length < 1)
     {
@@ -253,6 +290,15 @@ function handleGetStopsRequest(response)
   response.pins.forEach(function(element){
   //var element = response.dm.itdOdvAssignedStops[0];
     //console.log("Stop: " + element + ", Stop ID: " + element.id);
+    //1000000
+    //var coords = element.coords.split(",");
+    //var coordLat = parseInt(coords[0]) / 1000000;
+    //var coordLon = parseInt(coords[1]) / 1000000;
+    //if (stopDistances[element.id.toString()] === null)
+      //{
+      //    stopDistances[element.id.toString()] = getDistanceFromLatLonInKm(coordLat,coordLon);
+      //}
+    stopDistances[element.id] = element.coords;
     requestBusData(0, "getBusses", [
       ["typeInfo_dm","stopID"],
       ["nameInfo_dm",element.id],
@@ -261,6 +307,7 @@ function handleGetStopsRequest(response)
     ]);
     busRequestsPending++;
   });
+  console.log(stopDistances);
   if (response.pins.length >= 1)
     {
       newEntry("Please wait...", "Getting busses");
@@ -270,14 +317,14 @@ function handleGetStopsRequest(response)
 function busListToEntries(busList)
 {
   busList.sort(function(a,b){
-    return a[1] - b[1];
+    return a[1]*distanceToMinutes(a[4]) - b[1]*distanceToMinutes(b[4]);
   });
   var itemList = [requestEntry];
   for (var i = 0; i < Math.min(10, busList.length); i++)
     {
       itemList.push({
         title: busList[i][2] + " " + busList[i][3],
-        subtitle: "(" + busList[i][1] + "min) " + busList[i][0]
+        subtitle: (busList[i][1] <= 1 ? "(Arr./Dep.)" : "(" + (busList[i][1]-1) + " Min)") + " " + busList[i][0]
       });
     }
   return itemList;
@@ -356,6 +403,7 @@ function getPosAndRequestBusses(retry, timeout)
       newEntry("Please wait...", "Retrying position (" + retry + ")");
     }
   navigator.geolocation.getCurrentPosition(function(pos){
+    console.log("Lat: " + pos.coords.latitude + ", Lon: " + pos.coords.longitude);
     newEntry("Please wait...", "Getting bus stops");
     requestStops(pos.coords.latitude, pos.coords.longitude);
   }, retry === 0 ? retryPos1 : (retry == 1 ? retryPos2 : positionError), {enableHighAccuracy: true, maximumAge: 10000, timeout: timeout});
