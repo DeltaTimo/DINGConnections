@@ -30,6 +30,11 @@
                 "type": "font"
             },
             {
+                "file": "images/menu_reload.png",
+                "name": "IMAGES_MENU_RELOAD_PNG",
+                "type": "bitmap"
+            },
+            {
                 "file": "images/tile_splash.png",
                 "name": "IMAGES_TILE_SPLASH_PNG",
                 "type": "bitmap"

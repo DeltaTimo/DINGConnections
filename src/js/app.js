@@ -5,7 +5,8 @@ var busRequestsPending = 0;
 var menu;
 var requestEntry = {
         title: 'Request',
-        subtitle: 'Get bus-data'
+        subtitle: 'Get bus-data',
+        icon: 'images/menu_reload.png'
       };
 var locationLat;
 var locationLon;
@@ -107,8 +108,8 @@ function getStops() {
 
 function handleGetBussesRequest(response) {
   console.log("Response: " + JSON.stringify(response));
-  //console.log("Session ID: " + sessionID);
-  var coords = stopDistances[response.dm.points.point.ref.id].split(",");
+  var stopId = response.dm.points.point.ref.id;
+  var coords = stopDistances[stopId].split(",");
   var coordLat = parseInt(coords[1]) / 1000000;
   var coordLon = parseInt(coords[0]) / 1000000;
   var distance = getDistanceFromLatLonInKm(coordLat,coordLon);
@@ -122,7 +123,9 @@ function handleGetBussesRequest(response) {
         bus.countdown,
         bus.servingLine.number,
         bus.servingLine.direction,
-        distance
+        distance,
+        stopId,
+        bus.servingLine.key
       ]);
       busRequestsPending--;
     }
@@ -179,14 +182,39 @@ function handleGetStopsRequest(response)
 function busListToEntries(busList)
 {
   busList.sort(function(a,b){
-    return a[1]*distanceToMinutes(a[4]) - b[1]*distanceToMinutes(b[4]);
+    return a[4] - b[4];
+  });
+  var closestStop = busList[0][5];
+  var linesServed = [];
+  var newBusList = [];
+  for (var i = 0; i < busList.length; i++)
+    {
+      if (!linesServed.includes(busList[i][6]) && (busList[i][5] == closestStop || (busList[i][1] - distanceToMinutes(busList[i][4]) >= 0)))
+        {
+          //console.log("Adding (" + busList[i][6] + ")" + 
+          //  busList[i][2] + " " + busList[i][3] + ":     " +
+          //  (busList[i][1] <= 1 ? "(Arr./Dep.)" : "(" + busList[i][1] + " Min)") + " " + busList[i][0]
+          //);
+          linesServed.push(busList[i][6]);
+          newBusList.push(busList[i]);
+        }
+      else
+        {
+          //console.log("Discarding (" + busList[i][6] + ")" + 
+          //  busList[i][2] + " " + busList[i][3] + ":     " +
+          //  (busList[i][1] <= 1 ? "(Arr./Dep.)" : "(" + busList[i][1] + " Min)") + " " + busList[i][0]
+          //);
+        }
+    }
+  newBusList.sort(function(a,b){
+    return a[1] - b[1];
   });
   var itemList = [requestEntry];
-  for (var i = 0; i < Math.min(10, busList.length); i++)
+  for (var i = 0; i < Math.min(10, newBusList.length); i++)
     {
       itemList.push({
-        title: busList[i][2] + " " + busList[i][3],
-        subtitle: (busList[i][1] <= 1 ? "(Arr./Dep.)" : "(" + (busList[i][1]-1) + " Min)") + " " + busList[i][0]
+        title: newBusList[i][2] + " " + newBusList[i][3],
+        subtitle: (newBusList[i][1] <= 1 ? "(Arr./Dep.)" : "(" + newBusList[i][1] + " Min)") + " " + newBusList[i][0]
       });
     }
   return itemList;
