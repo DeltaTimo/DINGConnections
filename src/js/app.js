@@ -2,6 +2,8 @@ var requestID = 0;
 var busses = [];
 var stopDistances = [];
 var busRequestsPending = 0;
+var maxCountPerStop = 7;
+var maxBusses = 20;
 var menu;
 var requestEntry = {
         title: 'Request',
@@ -185,12 +187,15 @@ function busListToEntries(busList)
     return a[4] - b[4];
   });
   var closestStop = busList[0][5];
+  var ignoredStops = [];
   var linesServed = [];
   var newBusList = [];
   for (var i = 0; i < busList.length; i++)
     {
-      if (!linesServed.includes(busList[i][6]) && (busList[i][5] == closestStop || (busList[i][1] - distanceToMinutes(busList[i][4]) >= 0)))
+      var countPerStop = 0;
+      if (countPerStop < maxCountPerStop && !linesServed.includes(busList[i][6]) && (busList[i][5] == closestStop || (busList[i][1] - distanceToMinutes(busList[i][4]) >= 0)))
         {
+          countPerStop = countPerStop + 1;
           //console.log("Adding (" + busList[i][6] + ")" + 
           //  busList[i][2] + " " + busList[i][3] + ":     " +
           //  (busList[i][1] <= 1 ? "(Arr./Dep.)" : "(" + busList[i][1] + " Min)") + " " + busList[i][0]
@@ -210,7 +215,7 @@ function busListToEntries(busList)
     return a[1] - b[1];
   });
   var itemList = [requestEntry];
-  for (var i = 0; i < Math.min(10, newBusList.length); i++)
+  for (var i = 0; i < Math.min(maxBusses, newBusList.length); i++)
     {
       itemList.push({
         title: newBusList[i][2] + " " + newBusList[i][3],

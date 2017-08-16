@@ -10,7 +10,6 @@
         "media": [
             {
                 "file": "images/menu_icon.png",
-                "menuIcon": true,
                 "name": "IMAGE_MENU_ICON",
                 "type": "bitmap"
             },
@@ -41,6 +40,7 @@
             },
             {
                 "file": "images/menu_icon.png",
+                "menuIcon": true,
                 "name": "IMAGES_MENU_ICON_PNG",
                 "type": "bitmap"
             },
@@ -59,7 +59,7 @@
     ],
     "uuid": "02bbf857-5b09-4c02-af24-b4c859702b2e",
     "versionCode": 1,
-    "versionLabel": "1.8",
+    "versionLabel": "1.9",
     "watchapp": {
         "hiddenApp": false,
         "watchface": false
