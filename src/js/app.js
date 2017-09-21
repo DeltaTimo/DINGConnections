@@ -48,7 +48,7 @@ function requestBusData(sessionID, requestOperation, requestArgs, addTime)
   if (addTime !== null && !addTime)
     {
       requestStr += "&itdDateDay=" + (now.getDate() < 10 ? "0" + now.getDate() : "" + now.getDate());
-      requestStr += "&itdDateMonth=" + (now.getMonth()+1 < 10 ? "0" + now.getMonth()+1 : "" + now.getMonth()+1);
+      requestStr += "&itdDateMonth=" + ((now.getMonth()+1) < 10 ? "0" + (now.getMonth()+1) : "" + (now.getMonth()+1));
       requestStr += "&itdDateYear=" + now.getFullYear().toString().substring(2,4);
       requestStr += "&itdTimeHour=" + (now.getHours() < 10 ? "0" + now.getHours() : "" + now.getHours());
       requestStr += "&itdTimeMinute=" + (now.getMinutes() < 10 ? "0" + now.getMinutes() : "" + now.getMinutes());
@@ -89,7 +89,7 @@ function getBusses() {
         }
       else
         {
-          newEntry("Error", "Couldn't reach server");
+          newEntry("Error (1)", "Couldn't reach server");
         }
     }
 }
@@ -103,7 +103,7 @@ function getStops() {
         }
       else
         {
-          newEntry("Error", "Couldn't reach server");
+          newEntry("Error (2)", "Couldn't reach server");
         }
     }
 }
@@ -117,18 +117,24 @@ function handleGetBussesRequest(response) {
   var distance = getDistanceFromLatLonInKm(coordLat,coordLon);
   console.log("Stop lat: " + coordLat + ", Stop lon: " + coordLon + ", distance: " + distance);
   var departures = response.departureList !== null ? response.departureList : [];
+  var error = false;
   for (var i = 0; i < Math.max(departures.length,3); i++)
     {
       var bus = departures[i];
-      busses.push([
-        bus.nameWO,
-        bus.countdown,
-        bus.servingLine.number,
-        bus.servingLine.direction,
-        distance,
-        stopId,
-        bus.servingLine.key
-      ]);
+      try {
+        busses.push([
+          bus.nameWO,
+          bus.countdown,
+          bus.servingLine.number,
+          bus.servingLine.direction,
+          distance,
+          stopId,
+          bus.servingLine.key
+        ]);
+      }
+      catch (e) {
+        error = true;
+      }
       busRequestsPending--;
     }
   if (busRequestsPending <= 0)
@@ -142,12 +148,16 @@ function handleGetBussesRequest(response) {
             }
           else
             {
-              newEntry("Error", "No busses found");
+              newEntry("Error (Code 3)", "An error occured :(");
             }
         }
       else
         {
-          newEntry("Error", "No busses found");
+          if (error) {
+            newEntry("Error (Code 4)", "An error occured :(");
+          } else {
+            newEntry("Error (Code 5)", "No busses found");
+          }
         }
     }
 }
@@ -159,7 +169,7 @@ function handleGetStopsRequest(response)
   busRequestsPending = 0;
   if (response.pins.length < 1)
     {
-      newEntry("Error", "No nearby stops");
+      newEntry("Error (Code 6)", "No nearby stops");
     }
   else
     {
@@ -232,6 +242,7 @@ function updateMenuItems(items)
 
 function httpRequest(requestStr, requestOperation)
 {
+  console.log("Sending " + requestOperation + " request: " + requestStr);
   var xhttp = new XMLHttpRequest();
   if (requestOperation == "getStops")
     {
@@ -291,7 +302,7 @@ function getPosAndRequestBusses(retry, timeout)
 
 function positionError(error)
 {
-  newEntry("Error", "Couldn't get location");
+  newEntry("Error (7)", "Couldn't get location");
 }
 function retryPos1(error)
 {

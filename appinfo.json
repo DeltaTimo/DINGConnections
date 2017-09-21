@@ -4,7 +4,7 @@
         "location"
     ],
     "companyName": "timo855@gmail.com",
-    "longName": "DING.eu Connections",
+    "longName": "Served! Ulm",
     "projectType": "pebblejs",
     "resources": {
         "media": [
@@ -52,14 +52,14 @@
         ]
     },
     "sdkVersion": "3",
-    "shortName": "DING.eu Busses",
+    "shortName": "Served! Ulm",
     "targetPlatforms": [
         "aplite",
         "basalt"
     ],
     "uuid": "02bbf857-5b09-4c02-af24-b4c859702b2e",
     "versionCode": 1,
-    "versionLabel": "1.10",
+    "versionLabel": "2.0",
     "watchapp": {
         "hiddenApp": false,
         "watchface": false
