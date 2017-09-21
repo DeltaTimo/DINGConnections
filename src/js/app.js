@@ -48,7 +48,7 @@ function requestBusData(sessionID, requestOperation, requestArgs, addTime)
   if (addTime !== null && !addTime)
     {
       requestStr += "&itdDateDay=" + (now.getDate() < 10 ? "0" + now.getDate() : "" + now.getDate());
-      requestStr += "&itdDateMonth=" + (now.getMonth() < 10 ? "0" + now.getMonth() : "" + now.getMonth());
+      requestStr += "&itdDateMonth=" + (now.getMonth()+1 < 10 ? "0" + now.getMonth()+1 : "" + now.getMonth()+1);
       requestStr += "&itdDateYear=" + now.getFullYear().toString().substring(2,4);
       requestStr += "&itdTimeHour=" + (now.getHours() < 10 ? "0" + now.getHours() : "" + now.getHours());
       requestStr += "&itdTimeMinute=" + (now.getMinutes() < 10 ? "0" + now.getMinutes() : "" + now.getMinutes());
